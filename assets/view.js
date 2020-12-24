@@ -2,15 +2,10 @@
 // Usage: import { start } from "./view.js"; start()
 
 export { start }
+import { loadTypes } from "./load-types.js"
 
 const newpid = () => Math.floor(Math.random()*1000000)
-const typename = filename => filename.replace(/^wiki-client-type-/,'').replace(/\.js$/,'')
-const typehash = (hash, filename) => {hash[typename(filename)] = filename; return hash}
-
-let types = fetch('http://ward.asia.wiki.org/plugin/assets/list?assets=pages%2Fclient-type-modules')
-  .then(res=>res.json())
-  .then(json => json.files.reduce(typehash,{}))
-
+let types
 let lineup = window.lineup = []
 
 function start () {
@@ -67,7 +62,7 @@ function update() {
 }
 
 async function refresh(panel) {
-  types = await types
+  types = await loadTypes
   let url = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
   let title = `<h3><img width=24 src="${url}"> ${panel.page.title}</h3>`
   let story = (await Promise.all(panel.page.story.map(item => render(item,panel)))).join("\n")
@@ -83,10 +78,6 @@ async function render(item, panel) {
       return `<p>${resolved}</p>`
     default:
       let handler = types[item.type]
-      if (typeof handler === 'string') {
-        let url = `http://ward.asia.wiki.org/assets/pages/client-type-modules/${handler}`
-        handler = types[item.type] = await import(url)
-      }
       if (handler) {
         return handler.emit(null, item)
       }
