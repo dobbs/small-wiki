@@ -2,10 +2,9 @@
 // Usage: import { start } from "./view.js"; start()
 
 export { start }
-import { loadTypes } from "./load-types.js"
+import { types } from "./types.js"
 
 const newpid = () => Math.floor(Math.random()*1000000)
-let types
 let lineup = window.lineup = []
 
 function start () {
@@ -62,7 +61,6 @@ function update() {
 }
 
 async function refresh(panel) {
-  types = await loadTypes
   let url = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
   let title = `<h3><img width=24 src="${url}"> ${panel.page.title}</h3>`
   let story = (await Promise.all(panel.page.story.map(item => render(item,panel)))).join("\n")
