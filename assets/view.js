@@ -15,12 +15,9 @@ function start () {
         display:flex; flex-direction:column;
         margin:0; padding:0; overflow:hidden;}
       section {flex: 90 80 auto; display: flex; flex-direction: row;
-        scrollbar-width: none; overflow-x: auto;}
-      article {flex: 0 0 400px; position: relative;
-        margin: 8px; color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);
-      }
-      .paper {padding: 8px; overflow-y: auto; overflow-x: hidden;
-        top: 0; bottom: 0; left: 0; right: 0; position: absolute;}
+        scrollbar-width: none; overflow-x: auto; overflow-y: hidden;}
+      article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
+        color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}
       footer {background-color:#ccc; padding:10px;
         flex: 2 0 20px;}
     </style>
@@ -66,7 +63,7 @@ async function refresh(panel) {
   let url = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
   let title = `<h3><img width=24 src="${url}"> ${panel.page.title}</h3>`
   let story = (await Promise.all(panel.page.story.map(item => render(item,panel)))).join("\n")
-  document.getElementById(panel.pid).innerHTML = `<div class=paper>${title}${story}</div>`
+  document.getElementById(panel.pid).innerHTML = `${title}${story}`
 }
 
 async function render(item, panel) {
