@@ -40,7 +40,8 @@ function populateLineup() {
     let url = where=='view' ? `./${slug}.json` : `//${where}/${slug}.json`
     let panel = {pid, where, slug, url}
     lineup.push(panel)
-    fetch(url).then(res => res.json()).then(json => {panel.page = json; refresh(panel)})
+    probe(where, slug)
+      .then(page => {panel.page = page; refresh(panel)})
   }
 }
 
@@ -125,7 +126,7 @@ async function resolve(title, pid) {
 
 function probe(where, slug) {
   let site = where == 'view' ? location.host : where
-  return fetch(`//${site}/${slug}.json`)
+  return fetch(`//${site}/${slug}.json`, {mode: 'cors'})
     .then(res => res.ok ? res.json() : null)
     .catch(err => null)
 }
