@@ -14,40 +14,40 @@ let types = fetch('http://ward.asia.wiki.org/plugin/assets/list?assets=pages%2Fc
 let lineup = window.lineup = []
 
 function start () {
-  let body = document.getElementsByTagName('body')[0]
-  body.innerHTML += `
+  document.body.insertAdjacentHTML("beforeend", `
     <style>
+      body, html {width: 100vw; height: 100vh;}
       body {font-family: Arial, Helvetica, sans-serif;
         display:flex; flex-direction:column;
-        margin:0; padding:0; width:100%; height:100%; overflow:hidden;}
-      section {flex: 1; display: flex; flex-direction: row;
-        overflow: scroll; scrollbar-width: none;}
+        margin:0; padding:0; overflow:hidden;}
+      section {flex: 90 80 auto; display: flex; flex-direction: row; scrollbar-width: none;}
       article {flex: 0 0 400px; position: relative;
-        background-color: white; margin: 8px; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}
+        margin: 8px; color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);
+      }
       .paper {padding: 8px; overflow-y: auto; overflow-x: hidden;
         top: 0; bottom: 0; left: 0; right: 0; position: absolute;}
       footer {background-color:#ccc; padding:10px;
-        flex-basis:20px;}
+        flex: 2 0 20px;}
     </style>
-    <section>${section()}</section>
-    <footer>${footer()}</footer>`
-   body.addEventListener('click',click)
+    <section data-wiki=lineup></section>
+    <footer>${footer()}</footer>`)
+  populateLineup()
+  document.addEventListener('click', click)
 }
 
-function section() {
+function populateLineup() {
   let hash = (location.hash||'view/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
   let fields = hash.split('/')
-  let html = []
+  const lineupDOM = document.querySelector('[data-wiki=lineup]')
   while (fields.length) {
     let [where,slug] = fields.splice(0,2)
     let pid = newpid()
-    html.push(`<article id=${pid}><h3>${slug}</h3></article>`)
+    lineupDOM.insertAdjacentHTML("beforeend", `<article id=${pid}><h3>${slug}</h3></article>`)
     let url = where=='view' ? `./${slug}.json` : `//${where}/${slug}.json`
     let panel = {pid, where, slug, url}
     lineup.push(panel)
     fetch(url).then(res => res.json()).then(json => {panel.page = json; refresh(panel)})
   }
-  return html.join("\n")
 }
 
 function footer() {
@@ -56,20 +56,22 @@ function footer() {
 
 
 function update() {
-  let section = document.getElementsByTagName('section')[0]
-  section.innerHTML = lineup.map(panel => `<article id=${panel.pid}><h3>${panel.page.title}</h3></article>`).join("\n")
-  for (let panel of lineup) {
+  const lineupDOM = document.querySelector('[data-wiki=lineup]')
+  lineupDOM.textContent = ''
+  for (const panel of lineup) {
+    lineupDOM.insertAdjacentHTML("beforeend", `<article id=${panel.pid}><h3>${panel.page.title}</h3></article>`)
+  }
+  for (const panel of lineup) {
     refresh(panel)
   }
 }
 
 async function refresh(panel) {
   types = await types
-  console.log(types)
   let url = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
   let title = `<h3><img width=24 src="${url}"> ${panel.page.title}</h3>`
-  let story = await Promise.all(panel.page.story.map(item => render(item,panel)))
-  document.getElementById(panel.pid).innerHTML = `<div class=paper>${title}${story.join("\n")}</div>`
+  let story = (await Promise.all(panel.page.story.map(item => render(item,panel)))).join("\n")
+  document.getElementById(panel.pid).innerHTML = `<div class=paper>${title}${story}</div>`
 }
 
 async function render(item, panel) {
