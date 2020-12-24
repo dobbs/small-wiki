@@ -8,23 +8,47 @@ const newpid = () => Math.floor(Math.random()*1000000)
 let lineup = window.lineup = []
 
 function start () {
-  document.body.insertAdjacentHTML("beforeend", `
-    <style>
-      body, html {width: 100vw; height: 100vh;}
-      body {font-family: Arial, Helvetica, sans-serif;
-        display:flex; flex-direction:column;
-        margin:0; padding:0; overflow:hidden;}
-      section {flex: 90 80 auto; display: flex; flex-direction: row;
-        scrollbar-width: none; overflow-x: auto; overflow-y: hidden;}
-      article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
-        color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}
-      footer {background-color:#ccc; padding:10px;
-        flex: 2 0 20px;}
-    </style>
-    <section data-wiki=lineup></section>
-    <footer>${footer()}</footer>`)
+  const root = document.body
+  wikiStyle(root)
+  wikiLineup(root)
+  wikiFooter(root)
   populateLineup()
   document.addEventListener('click', click)
+}
+
+function wikiStyle(dom) {
+  dom.classList.add("wiki-root")
+  ensureStyleTag(dom).insertAdjacentHTML("beforeend", `
+    .wiki-root {font-family: Arial, Helvetica, sans-serif;
+      display:flex; flex-direction:column;
+      margin:0; padding:0; overflow:hidden;}
+    .wiki-root section {flex: 90 80 auto;}
+    .wiki-root footer {flex: 2 0 20px;}`)
+}
+
+function wikiLineup(dom) {
+  ensureStyleTag(dom).insertAdjacentHTML("beforeend", `
+    .wiki-root section {display: flex; flex-direction: row;
+      scrollbar-width: none; overflow-x: auto; overflow-y: hidden;}
+    .wiki-root article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
+        color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}`)
+  dom.insertAdjacentHTML("beforeend", `<section data-wiki=lineup></section>`)
+}
+
+function wikiFooter(dom) {
+  ensureStyleTag(dom).insertAdjacentHTML("beforeend", `
+    .wiki-root footer {background-color:#ccc; padding:10px;}`)
+  dom.insertAdjacentHTML("beforeend", `
+    <footer>${footer()}</footer>`)
+}
+
+function ensureStyleTag(dom) {
+  let style = dom.querySelector('style')
+  if (! style) {
+    style = document.createElement('style')
+    dom.appendChild(style)
+  }
+  return style
 }
 
 function populateLineup() {
