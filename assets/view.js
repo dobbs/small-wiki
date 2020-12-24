@@ -14,7 +14,8 @@ function start () {
       body {font-family: Arial, Helvetica, sans-serif;
         display:flex; flex-direction:column;
         margin:0; padding:0; overflow:hidden;}
-      section {flex: 90 80 auto; display: flex; flex-direction: row; scrollbar-width: none;}
+      section {flex: 90 80 auto; display: flex; flex-direction: row;
+        scrollbar-width: none; overflow-x: auto;}
       article {flex: 0 0 400px; position: relative;
         margin: 8px; color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);
       }
