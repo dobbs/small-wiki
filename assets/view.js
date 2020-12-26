@@ -107,6 +107,7 @@ function populateLineup() {
     lineup.push(panel)
     let article = newPage(panel)
     lineupDOM.appendChild(article)
+    article.scrollIntoView({inline: 'nearest'})
     probe(where, slug)
       .then(page => {
         panel.page = page;
@@ -146,6 +147,10 @@ async function render(item, panel) {
 async function click(event) {
   let target = event.target
   let pid = target.dataset.pid
+  const article = target.closest('article')
+  if (article) {
+    article.scrollIntoView({inline: 'nearest'})
+  }
   if (pid) {
     event.preventDefault()
     event.stopPropagation()
