@@ -5,14 +5,61 @@ export { start }
 import { types } from "./types.js"
 
 const newpid = () => Math.floor(Math.random()*1000000)
-let lineup = window.lineup = []
+let lineup = window.lineup = {
+  panels: [],
+  style() {
+    return `
+    .wiki-root section {display: flex; flex-direction: row;
+      scrollbar-width: none; overflow-x: auto; overflow-y: hidden;}
+    .wiki-root article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
+        color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}`
+  },
+  toDOM() {
+    const section = document.createElement('section')
+    section.setAttribute('data-wiki', 'lineup')
+    //TODO create custom event handler
+    return section
+  },
+  reparseHash() {
+    let clean = (window.location.hash||'#/view/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
+    let fields = clean.split('/')
+    let pairs = []
+    while (fields.length) {
+      const [where, slug] = fields.splice(0,2)
+      const isOrigin = where == 'view'
+      pairs.push({where, slug, isOrigin})
+    }
+    return pairs
+  },
+  populate() {
+    const lineupDOM = document.querySelector('[data-wiki=lineup]')
+    lineupDOM.textContent = ''
+    lineup.panels.length = 0
+    let pairs = this.reparseHash()
+    pairs.forEach(({where, slug, isOrigin}) => {
+      let pid = newpid()
+      let url = isOrigin ? `./${slug}.json` : `//${where}/${slug}.json`
+      let panel = {pid, where, slug, url}
+      lineup.panels.push(panel)
+      let article = newPage(panel)
+      lineupDOM.appendChild(article)
+      article.scrollIntoView({inline: 'nearest'})
+      probe(where, slug).then(page => {
+        panel.page = page;
+        const renderEvent = Object.assign(new Event('wiki-render'), {panel, article})
+        article.dispatchEvent(renderEvent)
+      })
+    })
+  }
 
+
+}
 function start () {
   const root = document.body
   wikiStyle(root)
   wikiLineup(root)
   wikiFooter(root)
-  populateLineup()
+  lineup.populate()
   document.addEventListener('click', click)
 }
 
@@ -26,14 +73,10 @@ function wikiStyle(dom) {
     .wiki-root footer {flex: 2 0 20px;}`)
 }
 
-function wikiLineup(dom) {
-  ensureStyleTag(dom).insertAdjacentHTML("beforeend", `
-    .wiki-root section {display: flex; flex-direction: row;
-      scrollbar-width: none; overflow-x: auto; overflow-y: hidden;}
-    .wiki-root article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
-        color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}`)
-  dom.insertAdjacentHTML("beforeend", `<section data-wiki=lineup></section>`)
-  window.addEventListener('hashchange', populateLineup)
+function wikiLineup(dom, rereadHash) {
+  ensureStyleTag(dom).insertAdjacentHTML("beforeend", lineup.style())
+  dom.appendChild(lineup.toDOM())
+  window.addEventListener('hashchange', lineup.populate.bind(lineup))
 }
 
 function wikiFooter(dom) {
@@ -93,29 +136,6 @@ function newPage(panel) {
   return article
 }
 
-function populateLineup() {
-  let hash = (location.hash||'view/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
-  let fields = hash.split('/')
-  const lineupDOM = document.querySelector('[data-wiki=lineup]')
-  lineupDOM.textContent = ''
-  lineup.length = 0
-  while (fields.length) {
-    let [where, slug] = fields.splice(0,2)
-    let pid = newpid()
-    let url = where=='view' ? `./${slug}.json` : `//${where}/${slug}.json`
-    let panel = {pid, where, slug, url}
-    lineup.push(panel)
-    let article = newPage(panel)
-    lineupDOM.appendChild(article)
-    article.scrollIntoView({inline: 'nearest'})
-    probe(where, slug)
-      .then(page => {
-        panel.page = page;
-        article.dispatchEvent(Object.assign(new Event('wiki-render'), {panel, article}))
-      })
-  }
-}
-
 function footer() {
   return `<span>smallest wiki revisited</span>`
 }
@@ -156,18 +176,18 @@ async function click(event) {
     event.stopPropagation()
     let title = target.innerText
     let panel = await resolve(title, pid)
-    let hit = lineup.findIndex(panel => panel.pid == pid)
-    lineup.splice(hit+1,lineup.length, panel)
-    let newHash = '#/'+lineup.flatMap(({where, slug}) => [where, slug]).join('/')
+    let hit = lineup.panels.findIndex(panel => panel.pid == pid)
+    lineup.panels.splice(hit+1,lineup.panels.length, panel)
+    let newHash = '#/'+lineup.panels.flatMap(({where, slug}) => [where, slug]).join('/')
     window.history.pushState(null, panel.page.title, newHash)
-    populateLineup()
+    lineup.populate()
   }
 }
 
 async function resolve(title, pid) {
   const asSlug = (title) => title.replace(/\s/g, '-').replace(/[^A-Za-z0-9-]/g, '').toLowerCase()
   const recent = (list, action) => {if (action.site && !list.includes(action.site)) list.push(action.site); return list}
-  let panel = lineup.find(panel => panel.pid == pid)
+  let panel = lineup.panels.find(panel => panel.pid == pid)
   let path = (panel.page.journal||[]).reverse().reduce(recent,[location.host, panel.where])
   let slug = asSlug(title)
   let pages = await Promise.all(path.map(where => probe(where, slug)))
