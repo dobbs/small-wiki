@@ -33,6 +33,7 @@ function wikiLineup(dom) {
     .wiki-root article {flex: 0 0 400px; margin: 8px; padding: 8px; overflow-y: auto; overflow-x: hidden;
         color: black; background-color: white; box-shadow: 2px 1px 4px rgba(0, 0, 0, 0.2);}`)
   dom.insertAdjacentHTML("beforeend", `<section data-wiki=lineup></section>`)
+  window.addEventListener('hashchange', populateLineup)
 }
 
 function wikiFooter(dom) {
@@ -51,43 +52,71 @@ function ensureStyleTag(dom) {
   return style
 }
 
+function newPage(panel) {
+  panel.pid = panel.pid || newpid()
+  const article = document.createElement('article')
+  article.setAttribute('id', panel.pid)
+  article.insertAdjacentHTML('beforeend', `
+  <header>
+    <nav data-wiki="twins"></nav>
+    <h3 data-wiki="title"></h3>
+  </header>`)
+  article.addEventListener('wiki-render', ({panel, article}) => {
+    renderHeader({panel, article})
+    clearStory({panel, article})
+    renderStory({panel, article})
+  })
+
+  function renderHeader({panel, article}) {
+    // TODO: do something with twins
+    const flag = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
+    article.querySelector('[data-wiki="title"]')
+      .innerHTML = `<img width="24" height="24" src="${flag}"/> ${panel.page.title}`
+  }
+
+  function clearStory({panel, article}) {
+    let el = article.lastElementChild
+    while(el && el.tagName.toLowerCase() != 'header') {
+      article.removeChild(el)
+      el = article.lastElementChild
+    }
+  }
+
+  async function renderStory({panel, article}) {
+    clearStory({panel, article})
+    const story = await Promise.all(panel.page.story.map(item => render(item, panel)))
+    for(let html of story) {
+      article.insertAdjacentHTML('beforeend', html)
+    }
+  }
+
+  return article
+}
+
 function populateLineup() {
   let hash = (location.hash||'view/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
   let fields = hash.split('/')
   const lineupDOM = document.querySelector('[data-wiki=lineup]')
+  lineupDOM.textContent = ''
+  lineup.length = 0
   while (fields.length) {
-    let [where,slug] = fields.splice(0,2)
+    let [where, slug] = fields.splice(0,2)
     let pid = newpid()
-    lineupDOM.insertAdjacentHTML("beforeend", `<article id=${pid}><h3>${slug}</h3></article>`)
     let url = where=='view' ? `./${slug}.json` : `//${where}/${slug}.json`
     let panel = {pid, where, slug, url}
     lineup.push(panel)
+    let article = newPage(panel)
+    lineupDOM.appendChild(article)
     probe(where, slug)
-      .then(page => {panel.page = page; refresh(panel)})
+      .then(page => {
+        panel.page = page;
+        article.dispatchEvent(Object.assign(new Event('wiki-render'), {panel, article}))
+      })
   }
 }
 
 function footer() {
   return `<span>smallest wiki revisited</span>`
-}
-
-
-function update() {
-  const lineupDOM = document.querySelector('[data-wiki=lineup]')
-  lineupDOM.textContent = ''
-  for (const panel of lineup) {
-    lineupDOM.insertAdjacentHTML("beforeend", `<article id=${panel.pid}><h3>${panel.page.title}</h3></article>`)
-  }
-  for (const panel of lineup) {
-    refresh(panel)
-  }
-}
-
-async function refresh(panel) {
-  let url = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
-  let title = `<h3><img width=24 src="${url}"> ${panel.page.title}</h3>`
-  let story = (await Promise.all(panel.page.story.map(item => render(item,panel)))).join("\n")
-  document.getElementById(panel.pid).innerHTML = `${title}${story}`
 }
 
 async function render(item, panel) {
@@ -124,7 +153,9 @@ async function click(event) {
     let panel = await resolve(title, pid)
     let hit = lineup.findIndex(panel => panel.pid == pid)
     lineup.splice(hit+1,lineup.length, panel)
-    update()
+    let newHash = '#/'+lineup.flatMap(({where, slug}) => [where, slug]).join('/')
+    window.history.pushState(null, panel.page.title, newHash)
+    populateLineup()
   }
 }
 
@@ -133,10 +164,8 @@ async function resolve(title, pid) {
   const recent = (list, action) => {if (action.site && !list.includes(action.site)) list.push(action.site); return list}
   let panel = lineup.find(panel => panel.pid == pid)
   let path = (panel.page.journal||[]).reverse().reduce(recent,[location.host, panel.where])
-  console.log('resolve',{panel, path})
   let slug = asSlug(title)
   let pages = await Promise.all(path.map(where => probe(where, slug)))
-  console.log({path, pages})
   let hit = pages.findIndex(page => page)
   if (hit >= 0) {
     return {pid:newpid(), where:path[hit], slug, page:pages[hit]}
