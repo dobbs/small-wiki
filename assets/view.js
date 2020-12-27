@@ -212,7 +212,7 @@ async function resolve(title, pid) {
   let path = (panel.page.journal||[]).reverse().reduce(recent,[location.host, panel.where])
   let slug = asSlug(title)
   let fetchPromises = path.map(where => probe(where, slug))
-  let hit = null
+  let hit = -1
   let page = null
   for (let i =0; i < fetchPromises.length; i++) {
     page = await fetchPromises[i]
