@@ -230,8 +230,8 @@ async function resolve(title, pid) {
   if (hit >= 0) {
     return {pid:newpid(), where:path[hit], slug, page:page}
   } else {
-    let page = {title,story:[],journal:[]}
-    return {pid:newpid(), where:'ghost', slug, page}
+    let page = {title:title ,story:[{"text":"We could not find this page in the expected context.","type":"paragraph"}],journal:[]}
+    return {pid:newpid(), where:'ghost', slug, page:page}
   }
 }
 
