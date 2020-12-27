@@ -225,10 +225,19 @@ function probe(where, slug) {
   if (where == 'ghost') {
     return null
   } else {
-    return fetch(resolveURL(where, slug), {mode: 'cors'})
+    return fetchWithTimeout(resolveURL(where, slug), {mode: 'cors'})
       .then(res => res.ok ? res.json() : where == 'view' ? probe('default', slug) : null)
       .catch(err => null)
   }
+}
+
+async function fetchWithTimeout(resource, options) {
+  const timeout = 2000
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  const response = await fetch(resource, {options, signal: controller.signal})
+  clearTimeout(id)
+  return response
 }
 
 function resolveURL(where, resource) {
