@@ -65,11 +65,17 @@ let lineup = window.lineup = {
     let article = newPage(panel)
     lineupDOM.appendChild(article)
     article.scrollIntoView({inline: 'nearest'})
-    probe(where, slug).then(page => {
-      panel.page = page;
+    // Only need to probe for page if we don't already have it
+    if (!panel.page) {
+      probe(where, slug).then(page => {
+        panel.page = page;
+        const renderEvent = Object.assign(new Event('wiki-render'), {panel, article})
+        article.dispatchEvent(renderEvent)
+      })
+    } else {
       const renderEvent = Object.assign(new Event('wiki-render'), {panel, article})
       article.dispatchEvent(renderEvent)
-    })
+    }
   }
 }
 
