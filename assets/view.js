@@ -131,7 +131,7 @@ function newPage(panel) {
 
   function renderHeader({panel, article}) {
     // TODO: do something with twins
-    const flag = panel.where=='view' ? `./favicon.png` : `//${panel.where}/favicon.png`
+    const flag = ['view', 'ghost', 'default'].includes(panel.where) ? `./favicon.png` : `//${panel.where}/favicon.png`
     article.querySelector('[data-wiki="title"]')
       .innerHTML = `<img width="24" height="24" src="${flag}"/> ${panel.page.title}`
   }
@@ -222,10 +222,22 @@ async function resolve(title, pid) {
 }
 
 function probe(where, slug) {
+  if (where == 'ghost') {
+    return null
+  } else {
+    return fetch(resolveURL(where, slug), {mode: 'cors'})
+      .then(res => res.ok ? res.json() : where == 'view' ? probe('default', slug) : null)
+      .catch(err => null)
+  }
+}
+
+function resolveURL(where, resource) {
   let site = where == 'view' ? location.host : where
-  return fetch(`//${site}/${slug}.json`, {mode: 'cors'})
-    .then(res => res.ok ? res.json() : null)
-    .catch(err => null)
+  if (site == 'default') {
+    return `/default-pages/${resource}.json`
+  } else {
+    return `//${site}/${resource}.json`
+  }
 }
 
 function linkmark() {
