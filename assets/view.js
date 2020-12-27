@@ -211,10 +211,18 @@ async function resolve(title, pid) {
   let panel = lineup.panels.find(panel => panel.pid == pid)
   let path = (panel.page.journal||[]).reverse().reduce(recent,[location.host, panel.where])
   let slug = asSlug(title)
-  let pages = await Promise.all(path.map(where => probe(where, slug)))
-  let hit = pages.findIndex(page => page)
+  let fetchPromises = path.map(where => probe(where, slug))
+  let hit = null
+  let page = null
+  for (let i =0; i < fetchPromises.length; i++) {
+    page = await fetchPromises[i]
+    if (page) {
+      hit = i
+      break;
+    }
+  }
   if (hit >= 0) {
-    return {pid:newpid(), where:path[hit], slug, page:pages[hit]}
+    return {pid:newpid(), where:path[hit], slug, page:page}
   } else {
     let page = {title,story:[],journal:[]}
     return {pid:newpid(), where:'ghost', slug, page}
