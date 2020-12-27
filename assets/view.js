@@ -191,7 +191,10 @@ async function click(event) {
     event.stopPropagation()
     let title = target.innerText
     let panel = await resolve(title, pid)
-    lineup.removePanelsRightOf(pid)
+    let saveLineup = !!event.shiftKey
+    if (! saveLineup) {
+      lineup.removePanelsRightOf(pid)
+    }
     lineup.addPanel(panel)
     lineup.updateHash()
   } else {
