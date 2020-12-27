@@ -4,7 +4,7 @@
 export { start }
 import { types } from "./types.js"
 
-const newpid = () => Math.floor(Math.random()*1000000)
+const newpid = () => `panel-${Math.floor(Math.random()*1000000)}`
 let lineup = window.lineup = {
   panels: [],
   style() {
@@ -31,6 +31,11 @@ let lineup = window.lineup = {
     }
     return pairs
   },
+  updateHash() {
+    let newHash = '#/'+lineup.panels.flatMap(({where, slug}) => [where, slug]).join('/')
+    let title = lineup.panels[lineup.panels.length - 1].page.title
+    window.history.pushState(null, title, newHash)
+  },
   populate() {
     const lineupDOM = document.querySelector('[data-wiki=lineup]')
     lineupDOM.textContent = ''
@@ -40,20 +45,34 @@ let lineup = window.lineup = {
       let pid = newpid()
       let url = isOrigin ? `./${slug}.json` : `//${where}/${slug}.json`
       let panel = {pid, where, slug, url}
-      lineup.panels.push(panel)
-      let article = newPage(panel)
-      lineupDOM.appendChild(article)
-      article.scrollIntoView({inline: 'nearest'})
-      probe(where, slug).then(page => {
-        panel.page = page;
-        const renderEvent = Object.assign(new Event('wiki-render'), {panel, article})
-        article.dispatchEvent(renderEvent)
-      })
+      lineup.addPanel(panel)
+    })
+  },
+  removePanelsRightOf(pid) {
+    let hit = lineup.panels.findIndex(panel => panel.pid == pid)
+    const lineupDOM = document.querySelector('[data-wiki=lineup]')
+    for(let i = lineup.panels.length-1; i > hit; i--) {
+      let panel = lineup.panels.pop()
+      let article = lineupDOM.querySelector(`#${panel.pid}`)
+      lineupDOM.removeChild(article)
+    }
+  },
+  addPanel(panel) {
+    const lineupDOM = document.querySelector('[data-wiki=lineup]')
+    let {where, slug} = panel
+    panel.pid = panel.pid || newpid()
+    lineup.panels.push(panel)
+    let article = newPage(panel)
+    lineupDOM.appendChild(article)
+    article.scrollIntoView({inline: 'nearest'})
+    probe(where, slug).then(page => {
+      panel.page = page;
+      const renderEvent = Object.assign(new Event('wiki-render'), {panel, article})
+      article.dispatchEvent(renderEvent)
     })
   }
-
-
 }
+
 function start () {
   const root = document.body
   wikiStyle(root)
@@ -167,20 +186,19 @@ async function render(item, panel) {
 async function click(event) {
   let target = event.target
   let pid = target.dataset.pid
-  const article = target.closest('article')
-  if (article) {
-    article.scrollIntoView({inline: 'nearest'})
-  }
   if (pid) {
     event.preventDefault()
     event.stopPropagation()
     let title = target.innerText
     let panel = await resolve(title, pid)
-    let hit = lineup.panels.findIndex(panel => panel.pid == pid)
-    lineup.panels.splice(hit+1,lineup.panels.length, panel)
-    let newHash = '#/'+lineup.panels.flatMap(({where, slug}) => [where, slug]).join('/')
-    window.history.pushState(null, panel.page.title, newHash)
-    lineup.populate()
+    lineup.removePanelsRightOf(pid)
+    lineup.addPanel(panel)
+    lineup.updateHash()
+  } else {
+    const article = target.closest('article')
+    if (article) {
+      article.scrollIntoView({inline: 'nearest'})
+    }
   }
 }
 
