@@ -123,6 +123,9 @@ function ensureStyleTag(dom) {
 function newPage(panel) {
   panel.pid = panel.pid || newpid()
   const article = document.createElement('article')
+  if (panel.where == 'ghost') {
+    article.setAttribute('style', 'opacity: 0.5;')
+  }
   article.setAttribute('id', panel.pid)
   article.insertAdjacentHTML('beforeend', `
   <header>
