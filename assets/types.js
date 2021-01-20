@@ -4,10 +4,13 @@ import * as html from "./types/html.js"
 import * as markdown from "./types/markdown.js"
 import * as pagefold from "./types/pagefold.js"
 
-export const types = {
+const types = {
   code,
   graphviz,
   html,
   markdown,
   pagefold
 }
+let typesLoaded = Promise.resolve(types)
+
+export {types, typesLoaded}

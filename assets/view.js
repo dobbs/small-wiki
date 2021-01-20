@@ -2,7 +2,7 @@
 // Usage: import { start } from "./view.js"; start()
 
 export { start }
-import { types } from "./types.js"
+import {types, typesLoaded} from './types.js'
 
 const newpid = () => `panel-${Math.floor(Math.random()*1000000)}`
 let lineup = window.lineup = {
@@ -188,6 +188,7 @@ async function render(item, panel) {
         .replace(/\[(.+?) (.+?)\]/g, external)
       return `<p>${resolved}</p>`
     default:
+      await typesLoaded
       let handler = types[item.type]
       if (handler) {
         return handler.emit(null, item)
