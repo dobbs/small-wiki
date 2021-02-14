@@ -21,18 +21,30 @@ let lineup = window.lineup = {
     return section
   },
   reparseHash() {
-    let clean = (window.location.hash||'#/view/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
-    let fields = clean.split('/')
+    let clean = (window.location.hash||'#/welcome-visitors').replace(/(^[\/#]+)|(\/+$)/g,'')
+    let idents = clean.split('/')
     let pairs = []
-    while (fields.length) {
-      const [where, slug] = fields.splice(0,2)
+    idents.forEach(function (element) {
+      var slug, where
+      if (element.includes('@')) {
+        [slug, where] = element.split('@')
+      } else {
+        slug = element
+        where = 'view'
+      }
       const isOrigin = where == 'view'
       pairs.push({where, slug, isOrigin})
-    }
+    })
+    console.info('*** pairs', pairs)
     return pairs
   },
   updateHash() {
-    let newHash = '#/'+lineup.panels.flatMap(({where, slug}) => [where, slug]).join('/')
+    console.info('***', lineup.panels)
+    let newHash = '#' + lineup.panels.flatMap( ({where, slug}) =>
+      (where == 'ghost') ? [] :
+      (where == 'view') ?  [slug] :
+                           [`${slug}@${where}`]
+    ).join('/')
     let title = lineup.panels[lineup.panels.length - 1].page.title
     window.history.pushState(null, title, newHash)
   },
